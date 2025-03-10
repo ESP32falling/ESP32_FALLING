@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thinger.io Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .gauge {
+            width: 200px;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Thinger.io Dashboard</h1>
+        <div>
+            <h2>Acceleration Z: <span id="acceleration_z">0</span></h2>
+            <h2>Status: <span id="fall_status">Normal</span></h2>
+        </div>
+        <div class="gauge">
+            <canvas id="gaugeChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const deviceToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJlc3AzMl9pb3RfZmFsbGluZyIsImlhdCI6MTc0MTYyNjczMCwianRpIjoiNjdjZjFkNmFkMWQzYzBlOTg0MGU5ZGQyIiwic3ZyIjoiYXAtc291dGhlYXN0LmF3cy50aGluZ2VyLmlvIiwidXNyIjoidGhhbmFyYWNoIn0.-ZTd-2ZR4YmAlZRtbJFOy75EmBu3CLpNdp_ZqAMOcXM"; // Device token
+        const deviceId = "esp32_iot_falling";
+        const resourceAccelerationZ = "acceleration_z";
+        const resourceFallStatus = "fall_status";
+
+        const ctx = document.getElementById('gaugeChart').getContext('2d');
+        const gaugeChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [0, 100],
+                    backgroundColor: ['#FF6384', '#E0E0E0'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                circumference: 180,
+                rotation: 270,
+                cutoutPercentage: 80,
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: { display: false },
+                tooltips: { enabled: false }
+            }
+        });
+
+        async function fetchData() {
+            try {
+                const responseAccelerationZ = await fetch(`https://backend.thinger.io/v3/users/thanarach/devices/${deviceId}/resources/${resourceAccelerationZ}`, {
+                    headers: {
+                        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJlc3AzMl9pb3RfZmFsbGluZyIsImlhdCI6MTc0MTYyNjczMCwianRpIjoiNjdjZjFkNmFkMWQzYzBlOTg0MGU5ZGQyIiwic3ZyIjoiYXAtc291dGhlYXN0LmF3cy50aGluZ2VyLmlvIiwidXNyIjoidGhhbmFyYWNoIn0.-ZTd-2ZR4YmAlZRtbJFOy75EmBu3CLpNdp_ZqAMOcXM` // ใช้ Device token
+                    }
+                });
+                const dataAccelerationZ = await responseAccelerationZ.json();
+
+                const responseFallStatus = await fetch(`https://backend.thinger.io/v3/users/thanarach/devices/${deviceId}/resources/${resourceFallStatus}`, {
+                    headers: {
+                        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXYiOiJlc3AzMl9pb3RfZmFsbGluZyIsImlhdCI6MTc0MTYyNjczMCwianRpIjoiNjdjZjFkNmFkMWQzYzBlOTg0MGU5ZGQyIiwic3ZyIjoiYXAtc291dGhlYXN0LmF3cy50aGluZ2VyLmlvIiwidXNyIjoidGhhbmFyYWNoIn0.-ZTd-2ZR4YmAlZRtbJFOy75EmBu3CLpNdp_ZqAMOcXM` // ใช้ Device token
+                    }
+                });
+                const dataFallStatus = await responseFallStatus.json();
+
+                document.getElementById('acceleration_z').textContent = dataAccelerationZ;
+                document.getElementById('fall_status').textContent = dataFallStatus;
+
+                // Update gauge
+                const value = Math.abs(dataAccelerationZ);
+                gaugeChart.data.datasets[0].data = [value, 100 - value];
+                gaugeChart.update();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        setInterval(fetchData, 1000); // Fetch data every second
+    </script>
+</body>
+</html>
